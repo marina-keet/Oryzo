@@ -1,0 +1,87 @@
+@page "/register"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject LocalStorageService LocalStorage
+
+<h3>Inscription</h3>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger">@Error</div>
+}
+
+<EditForm Model="registerModel" OnValidSubmit="OnRegister">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div>
+        <label>Pseudo</label>
+        <InputText @bind-Value="registerModel.Username" class="form-control" />
+    </div>
+    <div>
+        <label>Email</label>
+        <InputText @bind-Value="registerModel.Email" class="form-control" />
+    </div>
+    <div>
+        <label>Mot de passe</label>
+        <InputText @bind-Value="registerModel.Password" type="password" class="form-control" />
+    </div>
+    <button type="submit" class="btn btn-primary mt-2">S'inscrire</button>
+</EditForm>
+<p>
+    Déjà un compte ? <a href="/login">Connexion</a>
+</p>
+
+@code {
+    private RegisterModel registerModel = new();
+    private string Error;
+
+    private async Task OnRegister()
+    {
+        Error = null;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("http://localhost:3000/api/auth/register", registerModel);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<AuthResult>();
+                if (result != null)
+                {
+                    await LocalStorage.SetItemAsync("token", result.token);
+                    Navigation.NavigateTo("/");
+                }
+            }
+            else
+            {
+                var err = await response.Content.ReadFromJsonAsync<ErrorResult>();
+                Error = err?.error ?? "Erreur lors de l'inscription.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Error = "Impossible de contacter le serveur. Vérifiez votre connexion.";
+        }
+    }
+
+    public class RegisterModel
+    {
+        public string Username { get; set; }
+        public string Email { get; set; }
+        public string Password { get; set; }
+    }
+    public class AuthResult
+    {
+        public string token { get; set; }
+        public User user { get; set; }
+    }
+    public class User
+    {
+        public int id { get; set; }
+        public string username { get; set; }
+        public string email { get; set; }
+    }
+    public class ErrorResult
+    {
+        public string error { get; set; }
+    }
+}

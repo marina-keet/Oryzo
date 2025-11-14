@@ -1,0 +1,65 @@
+{
+  "Files": [
+    {
+      "Id": "/home/marina/Oryzo/OryzoApp/OryzoBlazorApp/bin/Debug/net8.0/wwwroot/_framework/blazor.webassembly.js",
+      "PackagePath": "staticwebassets/_framework/blazor.webassembly.js"
+    },
+    {
+      "Id": "/home/marina/Oryzo/OryzoApp/OryzoBlazorApp/obj/Debug/net8.0/compressed/qdfrjd03e8.gz",
+      "PackagePath": "staticwebassets/_framework/blazor.webassembly.js.gz"
+    },
+    {
+      "Id": "/home/marina/Oryzo/OryzoApp/OryzoBlazorApp/obj/Debug/net8.0/scopedcss/bundle/OryzoBlazorApp.styles.css",
+      "PackagePath": "staticwebassets/OryzoBlazorApp.styles.css"
+    },
+    {
+      "Id": "/home/marina/Oryzo/OryzoApp/OryzoBlazorApp/wwwroot/css/app.css",
+      "PackagePath": "staticwebassets/css/app.css"
+    },
+    {
+      "Id": "/home/marina/Oryzo/OryzoApp/OryzoBlazorApp/wwwroot/css/bootstrap/bootstrap.min.css",
+      "PackagePath": "staticwebassets/css/bootstrap/bootstrap.min.css"
+    },
+    {
+      "Id": "/home/marina/Oryzo/OryzoApp/OryzoBlazorApp/wwwroot/css/bootstrap/bootstrap.min.css.map",
+      "PackagePath": "staticwebassets/css/bootstrap/bootstrap.min.css.map"
+    },
+    {
+      "Id": "/home/marina/Oryzo/OryzoApp/OryzoBlazorApp/wwwroot/favicon.png",
+      "PackagePath": "staticwebassets/favicon.png"
+    },
+    {
+      "Id": "/home/marina/Oryzo/OryzoApp/OryzoBlazorApp/wwwroot/icon-192.png",
+      "PackagePath": "staticwebassets/icon-192.png"
+    },
+    {
+      "Id": "/home/marina/Oryzo/OryzoApp/OryzoBlazorApp/wwwroot/images/oryzo-logo.png",
+      "PackagePath": "staticwebassets/images/oryzo-logo.png"
+    },
+    {
+      "Id": "/home/marina/Oryzo/OryzoApp/OryzoBlazorApp/wwwroot/index.html",
+      "PackagePath": "staticwebassets/index.html"
+    },
+    {
+      "Id": "/home/marina/Oryzo/OryzoApp/OryzoBlazorApp/wwwroot/sample-data/weather.json",
+      "PackagePath": "staticwebassets/sample-data/weather.json"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.OryzoBlazorApp.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.build.OryzoBlazorApp.props",
+      "PackagePath": "build\\OryzoBlazorApp.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildMultiTargeting.OryzoBlazorApp.props",
+      "PackagePath": "buildMultiTargeting\\OryzoBlazorApp.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildTransitive.OryzoBlazorApp.props",
+      "PackagePath": "buildTransitive\\OryzoBlazorApp.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

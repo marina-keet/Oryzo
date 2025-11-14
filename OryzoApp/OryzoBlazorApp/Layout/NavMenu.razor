@@ -1,0 +1,53 @@
+﻿
+
+<nav class="navbar navbar-oryzo navbar-expand-lg">
+    <div class="container-fluid">
+        <a class="navbar-brand oryzo-brand" href="/">Oryzo</a>
+        <button class="navbar-toggler" type="button" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse @(collapseNavMenu ? "" : "show")" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+                        <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Accueil
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="feed">
+                        <span class="bi bi-newspaper-nav-menu" aria-hidden="true"></span> Fil d’actualité
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="messages">
+                        <span class="bi bi-chat-dots-nav-menu" aria-hidden="true"></span> Messagerie
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="profile">
+                        <span class="bi bi-person-circle-nav-menu" aria-hidden="true"></span> Mon profil
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="register">
+                        <span class="bi bi-person-plus-nav-menu" aria-hidden="true"></span> Inscription
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="login">
+                        <span class="bi bi-box-arrow-in-right-nav-menu" aria-hidden="true"></span> Connexion
+                    </NavLink>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

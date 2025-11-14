@@ -1,0 +1,192 @@
+@using System.Text.Json
+@page "/feed"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject LocalStorageService LocalStorage
+
+<h3>Fil d’actualité</h3>
+
+@if (!IsAuthenticated)
+{
+    <div class="alert alert-warning">Vous devez être connecté pour voir le fil d’actualité. <a href="/login">Connexion</a></div>
+}
+else if (posts == null)
+{
+    <p>Chargement...</p>
+}
+else
+{
+    <div class="mb-4">
+        <h5>Créer un post</h5>
+        <EditForm Model="newPost" OnValidSubmit="CreatePost">
+            <InputTextArea @bind-Value="newPost.Content" class="form-control mb-2" placeholder="Exprimez-vous..." />
+            <InputFile OnChange="OnImageChange" />
+    @foreach (var post in posts)
+        </EditForm>
+        @if (!string.IsNullOrEmpty(PostError))
+        {
+                <b style="color:#1b6ec2;">@post.username</b> <span class="text-muted">@post.created_at</span>
+                <p style="color:#222;">@post.content</p>
+    </div>
+    @foreach (var post in posts)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <b>@post.username</b> <span class="text-muted">@post.created_at</span>
+                <p>@post.content</p>
+                @if (!string.IsNullOrEmpty(post.image))
+                {
+                    <img src="http://localhost:3000/uploads/@post.image" style="max-width:200px;" />
+                }
+                <div>
+                    <button class="btn btn-link" @onclick="() => ToggleLike(post)">@((post.liked ? "❤️" : "🤍")) @post.likes</button>
+                    <button class="btn btn-link" @onclick="() => ShowComments(post)">💬 @post.comments</button>
+                </div>
+                @if (post.ShowComments)
+                {
+                    <div class="mt-2">
+                        <EditForm Model="post.NewComment" OnValidSubmit="() => AddComment(post)">
+                            <InputText @bind-Value="post.NewComment.Content" class="form-control" placeholder="Ajouter un commentaire..." />
+                            <button class="btn btn-sm btn-secondary mt-1" type="submit">Commenter</button>
+                        </EditForm>
+                        @foreach (var c in post.CommentsList)
+                        {
+    </div>
+                            <div><b>@c.username</b> : @c.content</div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private bool IsAuthenticated = false;
+    private List<Post> posts;
+    private PostModel newPost = new();
+    private IBrowserFile imageFile;
+    private string PostError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await LocalStorage.GetItemAsync("token");
+        IsAuthenticated = !string.IsNullOrEmpty(token);
+        if (IsAuthenticated)
+        {
+            await LoadPosts(token);
+        }
+    }
+
+    private async Task LoadPosts(string token)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, "http://localhost:3000/api/posts");
+        request.Headers.Add("Authorization", $"Bearer {token}");
+        var response = await Http.SendAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            posts = await response.Content.ReadFromJsonAsync<List<Post>>();
+            foreach (var p in posts) { p.ShowComments = false; p.NewComment = new CommentModel(); p.CommentsList = new List<Comment>(); }
+            await LoadLikesAndComments(token);
+        }
+    }
+
+    private async Task LoadLikesAndComments(string token)
+    {
+        foreach (var post in posts)
+        {
+            // Likes
+            post.liked = false;
+            post.likes = 0;
+            var likes = await Http.GetFromJsonAsync<List<object>>($"http://localhost:3000/api/posts/{post.id}/like");
+            if (likes != null) post.likes = likes.Count;
+            // Comments
+            var comments = await Http.GetFromJsonAsync<List<Comment>>($"http://localhost:3000/api/posts/{post.id}/comments");
+            if (comments != null) { post.comments = comments.Count; post.CommentsList = comments; }
+        }
+        StateHasChanged();
+    }
+
+    private async Task CreatePost()
+    {
+        PostError = null;
+        var token = await LocalStorage.GetItemAsync("token");
+        if (string.IsNullOrEmpty(token)) { PostError = "Non authentifié"; return; }
+        var content = new MultipartFormDataContent();
+        content.Add(new StringContent(newPost.Content ?? ""), "content");
+        if (imageFile != null)
+        {
+            var stream = imageFile.OpenReadStream(5 * 1024 * 1024);
+            content.Add(new StreamContent(stream), "image", imageFile.Name);
+        }
+        var request = new HttpRequestMessage(HttpMethod.Post, "http://localhost:3000/api/posts") { Content = content };
+        request.Headers.Add("Authorization", $"Bearer {token}");
+        var response = await Http.SendAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadPosts(token);
+            newPost = new();
+            imageFile = null;
+        }
+        else
+        {
+            PostError = "Erreur lors de la publication";
+        }
+    }
+
+    private void OnImageChange(InputFileChangeEventArgs e)
+    {
+        imageFile = e.File;
+    }
+
+    private async Task ToggleLike(Post post)
+    {
+        var token = await LocalStorage.GetItemAsync("token");
+        var request = new HttpRequestMessage(HttpMethod.Post, $"http://localhost:3000/api/posts/{post.id}/like");
+        request.Headers.Add("Authorization", $"Bearer {token}");
+        var response = await Http.SendAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadPosts(token);
+        }
+    }
+
+    private void ShowComments(Post post)
+    {
+        post.ShowComments = !post.ShowComments;
+    }
+
+    private async Task AddComment(Post post)
+    {
+        var token = await LocalStorage.GetItemAsync("token");
+        var request = new HttpRequestMessage(HttpMethod.Post, $"http://localhost:3000/api/posts/{post.id}/comments")
+        {
+            Content = JsonContent.Create(post.NewComment)
+        };
+        request.Headers.Add("Authorization", $"Bearer {token}");
+        var response = await Http.SendAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadPosts(token);
+        }
+    }
+
+    public class PostModel { public string Content { get; set; } }
+    public class Post
+    {
+        public int id { get; set; }
+        public string username { get; set; }
+        public string content { get; set; }
+        public string image { get; set; }
+        public string created_at { get; set; }
+        public int likes { get; set; }
+        public int comments { get; set; }
+        public bool liked { get; set; }
+        public bool ShowComments { get; set; }
+        public CommentModel NewComment { get; set; }
+        public List<Comment> CommentsList { get; set; }
+    }
+    public class CommentModel { public string Content { get; set; } }
+    public class Comment { public string username { get; set; } public string content { get; set; } }
+}

@@ -1,0 +1,143 @@
+@using System.Text.Json
+@page "/messages"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject LocalStorageService LocalStorage
+
+<h3>Messagerie privée</h3>
+
+@if (!IsAuthenticated)
+{
+    <div class="alert alert-warning">Vous devez être connecté pour accéder à la messagerie. <a href="/login">Connexion</a></div>
+}
+else if (conversations == null)
+{
+    <p>Chargement...</p>
+}
+else
+{
+    <div class="row">
+        <div class="col-4">
+            <h5>Conversations</h5>
+            <ul class="list-group">
+                @foreach (var user in conversations)
+                {
+                    <li class="list-group-item @(selectedUser?.id == user.id ? "active" : "")" @onclick="() => SelectUser(user)">@user.username</li>
+                }
+            </ul>
+        </div>
+        <div class="col-8">
+            @if (selectedUser != null)
+            {
+                <h5>Avec @selectedUser.username</h5>
+                <div style="max-height:300px; overflow-y:auto; border:1px solid #ccc; padding:10px;">
+                    @if (messages == null)
+                    {
+                        <p>Chargement...</p>
+                    }
+                    else
+                    {
+                        @foreach (var msg in messages)
+                        {
+                            <div><b>@(msg.sender_id == myId ? "Moi" : selectedUser.username)</b> : @msg.content</div>
+                        }
+                    }
+                </div>
+                <EditForm Model="newMessage" OnValidSubmit="SendMessage">
+                    <InputText @bind-Value="newMessage.Content" class="form-control mt-2" placeholder="Votre message..." />
+                    <button class="btn btn-primary mt-1" type="submit">Envoyer</button>
+                </EditForm>
+            }
+            else
+            {
+                <p>Sélectionnez une conversation.</p>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private bool IsAuthenticated = false;
+    private List<User> conversations;
+    private User selectedUser;
+    private List<Message> messages;
+    private MessageModel newMessage = new();
+    private int myId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await LocalStorage.GetItemAsync("token");
+        IsAuthenticated = !string.IsNullOrEmpty(token);
+        if (IsAuthenticated)
+        {
+            myId = await GetUserIdFromToken(token);
+            await LoadConversations(token);
+        }
+    }
+
+    private async Task LoadConversations(string token)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, "http://localhost:3000/api/messages");
+        request.Headers.Add("Authorization", $"Bearer {token}");
+        var response = await Http.SendAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            conversations = await response.Content.ReadFromJsonAsync<List<User>>();
+        }
+    }
+
+    private async Task SelectUser(User user)
+    {
+        selectedUser = user;
+        await LoadMessages(user.id);
+    }
+
+    private async Task LoadMessages(int userId)
+    {
+        var token = await LocalStorage.GetItemAsync("token");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"http://localhost:3000/api/messages/{userId}");
+        request.Headers.Add("Authorization", $"Bearer {token}");
+        var response = await Http.SendAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            messages = await response.Content.ReadFromJsonAsync<List<Message>>();
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        var token = await LocalStorage.GetItemAsync("token");
+        var request = new HttpRequestMessage(HttpMethod.Post, $"http://localhost:3000/api/messages/{selectedUser.id}")
+        {
+            Content = JsonContent.Create(newMessage)
+        };
+        request.Headers.Add("Authorization", $"Bearer {token}");
+        var response = await Http.SendAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            newMessage = new();
+            await LoadMessages(selectedUser.id);
+        }
+    }
+
+    private async Task<int> GetUserIdFromToken(string token)
+    {
+        var payload = token.Split('.')[1];
+        var json = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(System.Text.Encoding.UTF8.GetString(PadBase64(payload)));
+        return json.GetProperty("id").GetInt32();
+    }
+    private byte[] PadBase64(string base64)
+    {
+        switch (base64.Length % 4)
+        {
+            case 2: base64 += "=="; break;
+            case 3: base64 += "="; break;
+        }
+        return Convert.FromBase64String(base64);
+    }
+
+    public class User { public int id { get; set; } public string username { get; set; } }
+    public class Message { public int sender_id { get; set; } public int receiver_id { get; set; } public string content { get; set; } }
+    public class MessageModel { public string Content { get; set; } }
+}

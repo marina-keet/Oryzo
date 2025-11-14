@@ -1,0 +1,119 @@
+@using System.Text.Json
+@page "/profile"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject LocalStorageService LocalStorage
+
+<h3>Mon profil</h3>
+
+@if (!IsAuthenticated)
+{
+    <div class="alert alert-warning">Vous devez être connecté pour voir votre profil. <a href="/login">Connexion</a></div>
+}
+else if (user == null)
+{
+    <p>Chargement...</p>
+}
+else
+{
+    <EditForm Model="user" OnValidSubmit="UpdateProfile">
+        <div class="mb-2">
+            <label>Pseudo</label>
+            <InputText @bind-Value="user.username" class="form-control" />
+        </div>
+        <div class="mb-2">
+            <label>Bio</label>
+            <InputTextArea @bind-Value="user.bio" class="form-control" />
+        </div>
+        <div class="mb-2">
+            <label>Avatar (URL)</label>
+            <InputText @bind-Value="user.avatar" class="form-control" />
+        </div>
+        <button class="btn btn-primary" type="submit">Mettre à jour</button>
+    </EditForm>
+    @if (!string.IsNullOrEmpty(Success))
+    {
+        <div class="alert alert-success mt-2">@Success</div>
+    }
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <div class="alert alert-danger mt-2">@Error</div>
+    }
+}
+
+@code {
+    private bool IsAuthenticated = false;
+    private User user;
+    private string Error;
+    private string Success;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await LocalStorage.GetItemAsync("token");
+        IsAuthenticated = !string.IsNullOrEmpty(token);
+        if (IsAuthenticated)
+        {
+            await LoadProfile(token);
+        }
+    }
+
+    private async Task LoadProfile(string token)
+    {
+        var userId = await GetUserIdFromToken(token);
+        var request = new HttpRequestMessage(HttpMethod.Get, $"http://localhost:3000/api/users/{userId}");
+        request.Headers.Add("Authorization", $"Bearer {token}");
+        var response = await Http.SendAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            user = await response.Content.ReadFromJsonAsync<User>();
+        }
+    }
+
+    private async Task UpdateProfile()
+    {
+        Error = null; Success = null;
+        var token = await LocalStorage.GetItemAsync("token");
+        var userId = await GetUserIdFromToken(token);
+        var request = new HttpRequestMessage(HttpMethod.Put, $"http://localhost:3000/api/users/{userId}")
+        {
+            Content = JsonContent.Create(user)
+        };
+        request.Headers.Add("Authorization", $"Bearer {token}");
+        var response = await Http.SendAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            Success = "Profil mis à jour !";
+        }
+        else
+        {
+            Error = "Erreur lors de la mise à jour.";
+        }
+    }
+
+    private async Task<int> GetUserIdFromToken(string token)
+    {
+        // Décoder le JWT côté client (simple, non sécurisé)
+        var payload = token.Split('.')[1];
+        var json = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(System.Text.Encoding.UTF8.GetString(PadBase64(payload)));
+        return json.GetProperty("id").GetInt32();
+    }
+    private byte[] PadBase64(string base64)
+    {
+        switch (base64.Length % 4)
+        {
+            case 2: base64 += "=="; break;
+            case 3: base64 += "="; break;
+        }
+        return Convert.FromBase64String(base64);
+    }
+
+    public class User
+    {
+        public int id { get; set; }
+        public string username { get; set; }
+        public string email { get; set; }
+        public string avatar { get; set; }
+        public string bio { get; set; }
+    }
+}
